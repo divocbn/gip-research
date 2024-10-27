@@ -1,0 +1,6 @@
+#  SPDX-License-Identifier: Apache-2.0
+#  SPDX-FileCopyrightText: 2023 Tom Vierjahn <tom.vierjahn@acm.org>
+#  SPDX-FileCopyrightText: 2023 Visual Computing WH <vc@w-hs.de>
+
+@PACKAGE_INIT@
+include ("${CMAKE_CURRENT_LIST_DIR}/gip_gfx-targets.cmake")

@@ -1,0 +1,19 @@
+#  SPDX-License-Identifier: Apache-2.0
+#  SPDX-FileCopyrightText: 2023--2024 Tom Vierjahn <tom.vierjahn@acm.org>
+#  SPDX-FileCopyrightText: 2023--2024 Visual Computing WH <vc@w-hs.de>
+
+cmake_minimum_required(VERSION 3.23)
+project(gip_gfx_example_05)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+find_package(sdl2)
+find_package(gip_gfx)
+
+add_executable(hello_click
+  hello_click.c
+  )
+target_link_libraries(hello_click
+  PUBLIC gip_gfx
+  )
