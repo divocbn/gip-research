@@ -112,12 +112,12 @@ void gip_gfx_set_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) {
   SDL_RenderDrawPoint(ren, x, y);
 }
 
-void gip_gfx_fill_rect(int start_x, int start_y, int width, int height,
-                       uint8_t r, uint8_t g, uint8_t b) {
-  SDL_SetRenderDrawColor(ren, r, g, b, 255);
-  SDL_Rect rect = {.x = start_x, .y = start_y, .w = width, .h = height};
-  SDL_RenderFillRect(ren, &rect);
-}
+  void gip_gfx_fill_rect(int start_x, int start_y, int width, int height,
+                        uint8_t r, uint8_t g, uint8_t b) {
+    SDL_SetRenderDrawColor(ren, r, g, b, 255);
+    SDL_Rect rect = {.x = start_x, .y = start_y, .w = width, .h = height};
+    SDL_RenderFillRect(ren, &rect);
+  }
 
 void gip_gfx_render_loop(void) {
   while (gip_gfx_loop_running) {
