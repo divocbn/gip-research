@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 #include <SDL_render.h>
-
+#include <SDL_events.h>
 typedef struct {
   int width;
   int height;
@@ -34,6 +34,8 @@ typedef struct {
   int height;
 } gip_gfx_rect_t;
 
+typedef bool (*gip_gfx_on_custom_event_t)(const SDL_Event* event);
+
 int gip_gfx_init();
 int gip_gfx_create_window(const char* title, int width, int height);
 int gip_gfx_create_scaled_window(const char* title, int width, int height,
@@ -51,6 +53,7 @@ void gip_gfx_end_draw();
 void gip_gfx_render_loop(void);
 
 gip_gfx_image_t* gip_gfx_load_bmp(const char* filename);
+gip_gfx_image_t* gip_gfx_load_custom();
 void gip_gfx_free_image(gip_gfx_image_t* image);
 
 gip_gfx_image_t* gip_gfx_access_window_image();
@@ -60,10 +63,14 @@ void gip_gfx_copy_rect(gip_gfx_image_t* src_img, gip_gfx_rect_t src_rect,
 
 void gip_gfx_set_on_click_fn(
     void (*on_click_fn)(int x, int y, gip_gfx_mouse_button_t button));
+
+void gip_gfx_set_custom_event(gip_gfx_on_custom_event_t event);
+
 bool gip_gfx_running();
 void gip_gfx_handle_events();
 void gip_gfx_render();
 
 SDL_Renderer* gip_gfx_get_renderer();
+SDL_Window* gip_gfx_get_window();
 
 #endif  // SDL_WARMING_STRIPES_GIP_GFX_H_

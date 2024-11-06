@@ -28,17 +28,29 @@ typedef struct {
   SDL_Surface* sdl_surface;
   gip_gfx_image_t* gip_gfx_image;
 } sdl_surface_gip_gfx_image_t;
+
 static struct {
   sdl_surface_gip_gfx_image_t* data;
   size_t size;
 } surface_image_map = {.data = NULL, .size = 0};
+
+typedef struct {
+    unsigned short width;
+    unsigned short height;
+    unsigned short color_depth;
+    unsigned short grayscale;
+    unsigned short header_size;
+} image_header_t;
 
 static bool gip_gfx_loop_running = true;
 
 static void (*gip_gfx_on_click_fn)(int x, int y,
                                    gip_gfx_mouse_button_t button) = NULL;
 
+static gip_gfx_on_custom_event_t gip_gfx_on_custom_event_fn = NULL;
+
 SDL_Renderer* gip_gfx_get_renderer() { return ren; }
+SDL_Window* gip_gfx_get_window() { return win; }
 
 int gip_gfx_init() {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -59,7 +71,7 @@ int gip_gfx_create_scaled_window(const char* title, int width, int height,
   }
 
   win = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                         scale * width, scale * height, SDL_WINDOW_SHOWN);
+                         scale * width, scale * height, SDL_WINDOW_SHOWN  | SDL_WINDOW_RESIZABLE);
   if (win == NULL) {
     printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
     SDL_Quit();
@@ -153,6 +165,51 @@ gip_gfx_image_t* gip_gfx_load_bmp(const char* filename) {
   return pair->gip_gfx_image;
 }
 
+gip_gfx_image_t* gip_gfx_load_custom() {
+    FILE* file = fopen("/Users/divo/Development/w-hs/gip-03/assets/EA1_6_1000.data", "rb");
+    if (!file) {
+        printf("Error opening file: %s\n", "/Users/divo/Development/w-hs/gip-03/assets/EA1_6_1000.data");
+        return NULL;
+    }
+
+    image_header_t header;
+    fseek(file, 0x800, SEEK_SET);
+    fread(&header.width, sizeof(unsigned short), 1, file);
+    fread(&header.height, sizeof(unsigned short), 1, file);
+    fread(&header.color_depth, sizeof(unsigned short), 1, file);
+    fread(&header.grayscale, sizeof(unsigned short), 1, file);
+    fread(&header.header_size, sizeof(unsigned short), 1, file);
+
+    ++surface_image_map.size;
+    surface_image_map.data = realloc(surface_image_map.data,
+                                     surface_image_map.size * sizeof(sdl_surface_gip_gfx_image_t));
+
+    sdl_surface_gip_gfx_image_t* pair =
+        surface_image_map.data + (surface_image_map.size - 1);
+
+    int pitch = header.width * 2; // 2 bytes per pixel
+    pair->sdl_surface = SDL_CreateRGBSurface(0, header.width, header.height, 16,
+                                             0x0000F800, 0x000007E0, 0x0000001F, 0);
+    if (pair->sdl_surface == NULL) {
+        printf("SDL_CreateRGBSurface Error: %s\n", SDL_GetError());
+        fclose(file);
+        return NULL;
+    }
+
+    fseek(file, 0x800, SEEK_SET); // Move to the start of pixel data
+    fread(pair->sdl_surface->pixels, 2, header.width * header.height, file);
+
+    fclose(file);
+
+    pair->gip_gfx_image = malloc(sizeof(gip_gfx_image_t));
+    pair->gip_gfx_image->width = header.width;
+    pair->gip_gfx_image->height = header.height;
+    pair->gip_gfx_image->bytes_per_row = pitch;
+    pair->gip_gfx_image->pixels = (uint8_t*)pair->sdl_surface->pixels;
+
+    return pair->gip_gfx_image;
+}
+
 void gip_gfx_free_image(gip_gfx_image_t* image) {
   // TODO: remove pair from map
   for (size_t i = 0; i < surface_image_map.size; ++i) {
@@ -210,6 +267,10 @@ bool gip_gfx_running() { return gip_gfx_loop_running; }
 void gip_gfx_handle_events() {
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
+    if(gip_gfx_on_custom_event_fn != NULL) {
+      gip_gfx_on_custom_event_fn(&e);
+    }
+
     // If user closes the window
     if (e.type == SDL_QUIT) {
       gip_gfx_loop_running = false;
@@ -231,7 +292,7 @@ void gip_gfx_handle_events() {
 
 void gip_gfx_render() {
   // render on screen
-  SDL_RenderClear(ren);
+  // SDL_RenderClear(ren);
   SDL_RenderCopy(ren, texture, NULL, NULL);
   if (draw_texture != NULL) {
     SDL_RenderCopy(ren, draw_texture, NULL, NULL);
@@ -243,3 +304,8 @@ void gip_gfx_set_on_click_fn(
     void (*on_click_fn)(int x, int y, gip_gfx_mouse_button_t button)) {
   gip_gfx_on_click_fn = on_click_fn;
 }
+
+void gip_gfx_set_custom_event(gip_gfx_on_custom_event_t event) {
+  gip_gfx_on_custom_event_fn = event;
+}
+
