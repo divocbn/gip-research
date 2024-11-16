@@ -18,12 +18,14 @@ static gip_image_t* current_image = NULL;
 static char current_dir[MAX_FILENAME] = "/Users/divo/Downloads/gip1-24-data-files"; // Default directory
 
 void gip_viewer_render_gui()
-{
+{   
+    // printf("(gip_viewer): render gui\n");
     if (current_image == NULL) {
         current_image = gip_image_create();
         gip_image_set_scale(current_image, 0.6f);
     } 
-    // Sidebar window
+
+    // printf("(gip_viewer): creating sidebar\n");
     ImGuiWindowFlags sidebar_flags = ImGuiWindowFlags_NoMove |
                                    ImGuiWindowFlags_NoResize |
                                    ImGuiWindowFlags_NoCollapse;
@@ -38,6 +40,7 @@ void gip_viewer_render_gui()
 
         if (current_image && current_image->texture) {
             igText("Headers:");
+
             igSeparator();
             igText("Width: %d", current_image->width);
             igText("Height: %d", current_image->height);
@@ -72,7 +75,7 @@ void gip_viewer_render_gui()
         igSetWindowSize_Vec2(footer_size, ImGuiCond_Always);
 
         static bool playing = true;
-        static int current_frame = 1;
+        static int current_frame = 0;
         
         if (igButton(playing ? "Pause" : "Play", (ImVec2){50, 20}))
         {
@@ -88,8 +91,11 @@ void gip_viewer_render_gui()
         // image isnt loading for some reason???
         // printf("loading frame: %s\n", filename);
         
+        // printf("(gip_viewer): checking if file exists\n");
+
         struct stat buffer;
         if (stat(filename, &buffer) == 0) {
+            //printf("(gip_viewer): loading image\n");
             if (!gip_image_load(current_image, filename, gip_gfx_get_renderer())) {
                 fprintf(stderr, "Failed to load image: %s\n", filename);
                 return;
@@ -98,7 +104,9 @@ void gip_viewer_render_gui()
             // set scale before rendering
             // gip_image_set_scale(current_image, 0.5f);
 
-            // check if texture exists before rendering
+            // TODO: check if texture exists before rendering
+            // printf("(gip_viewer): rendering image\n");
+
             if (current_image && current_image->texture) {
                 gip_image_render(current_image, gip_gfx_get_renderer());
             }

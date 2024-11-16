@@ -3,8 +3,8 @@
 gip_image_t* gip_image_create() {
     gip_image_t* img = malloc(sizeof(gip_image_t));
     img->texture = NULL;
-    img->width = 1;
-    img->height = 1; 
+    img->width = 0;
+    img->height = 0; 
     img->scale = 0.6f;
     return img;
 }
@@ -22,26 +22,27 @@ int gip_image_load(gip_image_t* img, const char* filename, SDL_Renderer* rendere
         fprintf(stderr, "Failed to open file: %s\n", filename);
         return 0;
     }
-
-    // Read dimensions
+    
     fread(&img->width, 2, 1, file);
     fread(&img->height, 2, 1, file);
     fread(&img->color_depth, 2, 1, file);
     fread(&img->grayscale, 2, 1, file);
     fread(&img->header_size, 2, 1, file);
 
+    printf("(gip_viewer): color depth: %d\n", img->color_depth);
+    // maybe check if the other headers are invalid?
     if (img->width == 0 || img->height == 0) {
-        fprintf(stderr, "Invalid image dimensions: %d x %d\n", img->width, img->height);
+        fprintf(stderr, "Invalid image header: %d x %d\n", img->width, img->height);
         fclose(file);
         return 0;
     }
 
     fseek(file, img->header_size, SEEK_SET);
 
-    int pixel_count = img->width * img->height * (img->color_depth / 2);
-    uint16_t* pixel_data = malloc(pixel_count);
+    int pixel_count = img->width * img->height;
+    uint16_t* pixel_data = malloc(pixel_count * sizeof(uint16_t));
     if (!pixel_data) {
-        fprintf(stderr, "Failed to allocate memory for pixel data\n");
+        fprintf(stderr, "Failed to allocate memory: pixel_data\n");
         fclose(file);
         return 0;
     }
@@ -51,17 +52,37 @@ int gip_image_load(gip_image_t* img, const char* filename, SDL_Renderer* rendere
 
     uint32_t* rgba_data = malloc(pixel_count * sizeof(uint32_t));
     if (!rgba_data) {
-        fprintf(stderr, "Failed to allocate memory for RGBA data\n");
+        fprintf(stderr, "Failed to allocate memory: rgba_data\n");
         free(rgba_data);
         return 0;
     }
 
+   //  printf("begin read grayscale pixel data\n");
     if (img->grayscale) {
+        // this shit throws a segmentation fault sometimes, but why???
+        /**
         for (int i = 0; i < pixel_count; i++) {
+            // convert 16 bit grayscale value to 8 bit
             uint8_t gray = pixel_data[i] >> 8;
+            // create a 32 bit rgba value with alpha channel
+            rgba_data[i] = (gray << 24) | (gray << 16) | (gray << 8) | 0xFF;
+        } */
+
+
+        // tryfix
+        int safe_pixel_count = img->width * img->height * 2;
+        for (int i = 0; i < safe_pixel_count && i < pixel_count; i++) {
+            // safe check????
+            if (i < pixel_count) {
+                // convert 16 bit grayscale value to 8 bit
+                uint8_t gray = (uint8_t)(pixel_data[i] >> 8);
+                // create a 32 bit rgba value with alpha channel
                 rgba_data[i] = (gray << 24) | (gray << 16) | (gray << 8) | 0xFF;
             }
-    } 
+        }
+    }
+    // printf("end read pixel data\n");
+
     
     free(pixel_data);
 
@@ -98,6 +119,17 @@ void gip_image_render(gip_image_t* img, SDL_Renderer* renderer) {
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, img->texture, NULL, &dest_rect);
 }
+
+/*
+void gip_image_render(gip_image_t* img, SDL_Renderer* renderer) {
+    if (!img->texture) return;
+
+    // TODO: add scale?
+    SDL_Rect dest_rect = {0, 0, img->width, img->height};
+
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, img->texture, NULL, &dest_rect);
+}*/
 
 void gip_image_set_scale(gip_image_t* img, float scale) {
     const float MIN_SCALE = 0.1f;
